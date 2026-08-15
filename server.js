@@ -22,6 +22,7 @@ const storage = new CloudinaryStorage({
   params: {
     folder: 'happy_cours_videos',
     resource_type: 'video', // Mode vidéo requis pour les fichiers volumineux
+    upload_preset: 'happy_cours_preset', // Utilisation de votre preset Cloudinary
     format: 'mp4',
     public_id: (req, file) => Date.now() + '-' + path.parse(file.originalname).name
   }
@@ -51,7 +52,10 @@ app.post('/upload', (req, res) => {
 
     res.json({
       success: true,
-      url: req.file.path
+      url: req.file.path,
+      title: req.body.titre_cours || "Nouveau cours",
+      description: req.body.description_video || "",
+      duration: req.body.duree_video || ""
     });
   });
 });
