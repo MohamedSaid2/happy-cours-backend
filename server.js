@@ -2,37 +2,44 @@ const express = require('express');
 const multer = require('multer');
 const cors = require('cors');
 const path = require('path');
-const fs = require('fs'); // 👈 Ajout du module File System
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 const app = express();
 
-// 👈 Vérifie si le dossier 'uploads' existe, sinon il le crée
-const uploadDir = 'uploads';
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
-}
-
-// Autorise ton site GitHub Pages à envoyer des requêtes
+// Autorise ton site web (GitHub Pages) à envoyer des requêtes
 app.use(cors());
 
-// Dossier public pour lire les vidéos
-app.use('/uploads', express.static(uploadDir));
-
-// Configuration du stockage local sur le serveur
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, `${uploadDir}/`),
-  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+// Configuration de Cloudinary avec tes identifiants
+cloudinary.config({
+  cloud_name: 'ek0tmvd9',
+  api_key: '411733432464956',
+  api_secret: 'haKbzhBm4nDaymY8IlOaYAPbJ34'
 });
 
-const upload = multer({ storage });
+// Configuration du stockage Cloudinary pour Multer
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'happy_cours_videos', // Dossier automatique sur Cloudinary
+    resource_type: 'auto',        // Accepte vidéos et fichiers
+    public_id: (req, file) => Date.now() + '-' + path.parse(file.originalname).name
+  }
+});
+
+const upload = multer({ storage: storage });
 
 // Route pour recevoir l'upload
 app.post('/upload', upload.single('video'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'Aucun fichier reçu' });
-  
-// URL de la vidéo hébergée
-  const videoUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
-  res.json({ success: true, url: videoUrl });
+  if (!req.file) {
+    return res.status(400).json({ error: 'Aucun fichier reçu' });
+  }
+
+  // Cloudinary renvoie l'URL permanente de la vidéo
+  res.json({
+    success: true,
+    url: req.file.path
+  });
 });
 
 const PORT = process.env.PORT || 3000;
