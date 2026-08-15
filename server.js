@@ -7,38 +7,52 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 const app = express();
 
-// Autorise ton site web (GitHub Pages) à envoyer des requêtes
 app.use(cors());
 
-// Configuration de Cloudinary avec tes identifiants
+// Configuration de Cloudinary
 cloudinary.config({
   cloud_name: 'ek0tmvd9',
   api_key: '411733432464956',
   api_secret: 'haKbzhBm4nDaymY8IlOaYAPbJ34'
 });
 
-// Configuration du stockage Cloudinary pour Multer
+// Configuration du stockage avec support des grands fichiers vidéos
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: 'happy_cours_videos', // Dossier automatique sur Cloudinary
-    resource_type: 'auto',        // Accepte vidéos et fichiers
+    folder: 'happy_cours_videos',
+    resource_type: 'video', // Mode vidéo requis pour les fichiers volumineux
+    format: 'mp4',
     public_id: (req, file) => Date.now() + '-' + path.parse(file.originalname).name
   }
 });
 
-const upload = multer({ storage: storage });
+// Limite fixée à 300 Mo (300 * 1024 * 1024 octets)
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 300 * 1024 * 1024 }
+});
 
-// Route pour recevoir l'upload
-app.post('/upload', upload.single('video'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'Aucun fichier reçu' });
-  }
+// Route d'upload
+app.post('/upload', (req, res) => {
+  upload.single('video')(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'La vidéo dépasse la limite autorisée de 300 Mo.' });
+      }
+      return res.status(500).json({ error: err.message });
+    } else if (err) {
+      return res.status(500).json({ error: 'Erreur lors du téléversement vers Cloudinary.' });
+    }
 
-  // Cloudinary renvoie l'URL permanente de la vidéo
-  res.json({
-    success: true,
-    url: req.file.path
+    if (!req.file) {
+      return res.status(400).json({ error: 'Aucun fichier reçu.' });
+    }
+
+    res.json({
+      success: true,
+      url: req.file.path
+    });
   });
 });
 
