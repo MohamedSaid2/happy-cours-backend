@@ -9,17 +9,17 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Configuration Cloudinary (Vars stockées dans le dashboard Render)
+// Configuration Cloudinary avec .trim() pour éliminer automatiquement les espaces invisibles
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
+  cloud_name: (process.env.CLOUDINARY_CLOUD_NAME || '').trim(),
+  api_key: (process.env.CLOUDINARY_API_KEY || '').trim(),
+  api_secret: (process.env.CLOUDINARY_API_SECRET || '').trim()
 });
 
 // Configuration Multer (stockage temporaire avant upload Cloudinary)
 const upload = multer({ dest: 'uploads/' });
 
-// Base de données temporaire en mémoire/fichier local (ou PostgreSQL/MongoDB sur Render)
+// Base de données temporaire en mémoire
 let annonces = [];
 
 // Fonction utilitaire pour uploader sur Cloudinary
@@ -29,7 +29,7 @@ const uploadToCloudinary = async (filePath, folder, resourceType = 'auto') => {
       folder: folder,
       resource_type: resourceType
     });
-    fs.unlinkSync(filePath); // Suppression du fichier local temporaire
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath); // Nettoyage sécurisé
     return result.secure_url;
   } catch (error) {
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
@@ -47,7 +47,7 @@ app.post('/api/annonces', upload.fields([
     let photoUrl = '';
 
     // 1. Upload de la photo de profil vers Cloudinary
-    if (req.files['photo_file'] && req.files['photo_file'][0]) {
+    if (req.files && req.files['photo_file'] && req.files['photo_file'][0]) {
       photoUrl = await uploadToCloudinary(
         req.files['photo_file'][0].path,
         'happy_cours/photos',
@@ -58,8 +58,8 @@ app.post('/api/annonces', upload.fields([
     // 2. Traitement des diplômes et upload de leurs justificatifs (PDF ou Image)
     let diplomes = [];
     if (body.diplomes) {
-      const parsedDiplomes = typeof body.diplomes === 'string' ? JSON.parse(body.diplomes) : body.diplomes;
-      const diplomaFiles = req.files['diploma_files'] || [];
+      const parsedDiplomes = typeof body.diplomes === 'string' ? JSON.parse(body.diplomes || '[]') : (body.diplomes || []);
+      const diplomaFiles = (req.files && req.files['diploma_files']) ? req.files['diploma_files'] : [];
 
       for (let i = 0; i < parsedDiplomes.length; i++) {
         let dip = parsedDiplomes[i];
@@ -78,7 +78,12 @@ app.post('/api/annonces', upload.fields([
       }
     }
 
-    // 3. Objet Annonce structuré
+    // 3. Traitement sécurisé des tableaux et objets
+    const modes = body.modes ? (Array.isArray(body.modes) ? body.modes : [body.modes]) : [];
+    const niveaux = body.niveaux ? (Array.isArray(body.niveaux) ? body.niveaux : [body.niveaux]) : [];
+    const experiences = typeof body.experiences === 'string' ? JSON.parse(body.experiences || '[]') : (body.experiences || []);
+
+    // 4. Objet Annonce structuré
     const nouvelleAnnonce = {
       id: Date.now().toString(),
       prenom: body.prenom,
@@ -90,14 +95,14 @@ app.post('/api/annonces', upload.fields([
       photo_url: photoUrl,
       matieres: body.matieres,
       titre_accroche: body.titre_accroche,
-      modes: Array.isArray(body.modes) ? body.modes : [body.modes],
-      niveaux: Array.isArray(body.niveaux) ? body.niveaux : [body.niveaux],
+      modes: modes,
+      niveaux: niveaux,
       methodologie: body.methodologie,
       tarif_primaire: parseFloat(body.tarif_primaire) || 0,
       tarif_college: parseFloat(body.tarif_college) || 0,
       tarif_lycee: parseFloat(body.tarif_lycee) || 0,
       diplomes: diplomes,
-      experiences: typeof body.experiences === 'string' ? JSON.parse(body.experiences) : (body.experiences || []),
+      experiences: experiences,
       date_creation: new Date().toISOString()
     };
 
@@ -105,17 +110,17 @@ app.post('/api/annonces', upload.fields([
 
     res.status(201).json({ success: true, id: nouvelleAnnonce.id, annonce: nouvelleAnnonce });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: 'Erreur lors de la publication d\'annonce' });
+    console.error('Erreur Backend:', err);
+    res.status(500).json({ success: false, message: err.message || 'Erreur lors de la publication d\'annonce' });
   }
 });
 
-// ENDPOINT : Récupérer toutes les annonces (pour trouver-un-prof.html)
+// ENDPOINT : Récupérer toutes les annonces
 app.get('/api/annonces', (req, res) => {
   res.json(annonces);
 });
 
-// ENDPOINT : Récupérer une annonce par ID (pour template-professeur.html)
+// ENDPOINT : Récupérer une annonce par ID
 app.get('/api/annonces/:id', (req, res) => {
   const annonce = annonces.find(a => a.id === req.params.id);
   if (!annonce) return res.status(404).json({ message: 'Professeur non trouvé' });
