@@ -7,29 +7,37 @@ generator client {
 }
 
 model Annonce {
-  id             String         @id @default(uuid())
-  prenom         String
-  nom            String?
-  email          String
-  telephone      String?
-  ville          String
-  etablissement  String?
-  photo_url      String?
-  matieres       String
-  titre_accroche String?
-  modes          String[]
-  niveaux        String[]
-  methodologie   String?
-  tarif_primaire Float?         @default(0)
-  tarif_college  Float?         @default(0)
-  tarif_lycee    Float?         @default(0)
-  diplomes       Json?          @default("[]")
-  experiences    Json?          @default("[]")
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id                      String         @id @default(uuid())
+  prenom                  String
+  nom                     String?
+  email                   String
+  telephone               String?
+  ville                   String
+  etablissement           String?
+  photo_url               String?
+  matieres                String
+  titre_accroche          String?
+  modes                   String[]
+  niveaux                 String[]
+  methodologie            String?
+  
+  // Tarifs En ligne
+  tarif_primaire          Float?         @default(0)
+  tarif_college           Float?         @default(0)
+  tarif_lycee             Float?         @default(0)
+  
+  // Tarifs À domicile
+  tarif_domicile_primaire Float?         @default(0)
+  tarif_domicile_college  Float?         @default(0)
+  tarif_domicile_lycee    Float?         @default(0)
 
-  avis           Avis[]
-  disponibilites Disponibilite[]
+  diplomes                Json?          @default("[]")
+  experiences             Json?          @default("[]")
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+
+  avis                    Avis[]
+  disponibilites          Disponibilite[]
 }
 
 model Avis {
@@ -45,8 +53,8 @@ model Avis {
 
 model Disponibilite {
   id        String    @id @default(uuid())
-  jour      String?   // Ajout pour supporter le format récurrent ex: "Lundi"
-  date      DateTime? // Passé en optionnel
+  jour      String?   
+  date      DateTime? 
   heure     String
   statut    String    @default("disponible")
 

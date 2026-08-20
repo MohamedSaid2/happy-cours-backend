@@ -100,6 +100,9 @@ app.post('/api/annonces', upload.fields([
         tarif_primaire: parseFloat(body.tarif_primaire) || 0,
         tarif_college: parseFloat(body.tarif_college) || 0,
         tarif_lycee: parseFloat(body.tarif_lycee) || 0,
+        tarif_domicile_primaire: parseFloat(body.tarif_domicile_primaire) || 0,
+        tarif_domicile_college: parseFloat(body.tarif_domicile_college) || 0,
+        tarif_domicile_lycee: parseFloat(body.tarif_domicile_lycee) || 0,
         diplomes: diplomes,
         experiences: experiences
       }
@@ -177,6 +180,9 @@ app.put('/api/annonces/:id', upload.fields([
         tarif_primaire: parseFloat(body.tarif_primaire) || existingAnnonce.tarif_primaire,
         tarif_college: parseFloat(body.tarif_college) || existingAnnonce.tarif_college,
         tarif_lycee: parseFloat(body.tarif_lycee) || existingAnnonce.tarif_lycee,
+        tarif_domicile_primaire: parseFloat(body.tarif_domicile_primaire) || existingAnnonce.tarif_domicile_primaire,
+        tarif_domicile_college: parseFloat(body.tarif_domicile_college) || existingAnnonce.tarif_domicile_college,
+        tarif_domicile_lycee: parseFloat(body.tarif_domicile_lycee) || existingAnnonce.tarif_domicile_lycee,
         diplomes: diplomes,
         experiences: experiences
       }
@@ -253,7 +259,6 @@ app.post('/api/annonces/:id/disponibilites', async (req, res) => {
     const annonceId = req.params.id;
 
     if (Array.isArray(slots)) {
-      // Purge des anciennes disponibilités pour éviter les réplications
       await prisma.disponibilite.deleteMany({
         where: { annonceId: annonceId }
       });
