@@ -1,0 +1,54 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Annonce {
+  id             String         @id @default(uuid())
+  prenom         String
+  nom            String?
+  email          String
+  telephone      String?
+  ville          String
+  etablissement  String?
+  photo_url      String?
+  matieres       String
+  titre_accroche String?
+  modes          String[]
+  niveaux        String[]
+  methodologie   String?
+  tarif_primaire Float?         @default(0)
+  tarif_college  Float?         @default(0)
+  tarif_lycee    Float?         @default(0)
+  diplomes       Json?          @default("[]")
+  experiences    Json?          @default("[]")
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  avis           Avis[]
+  disponibilites Disponibilite[]
+}
+
+model Avis {
+  id          String   @id @default(uuid())
+  auteur      String
+  note        Int
+  commentaire String
+  createdAt   DateTime @default(now())
+
+  annonceId   String
+  annonce     Annonce  @relation(fields: [annonceId], references: [id], onDelete: Cascade)
+}
+
+model Disponibilite {
+  id        String   @id @default(uuid())
+  jour      String
+  heure     String
+  statut    String   @default("disponible")
+
+  annonceId String
+  annonce   Annonce  @relation(fields: [annonceId], references: [id], onDelete: Cascade)
+}
