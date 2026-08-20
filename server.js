@@ -5,7 +5,6 @@ const cors = require('cors');
 const fs = require('fs');
 require('dotenv').config();
 
-// Configuration Prisma 7 avec l'adaptateur PostgreSQL
 const { Pool } = require('pg');
 const { PrismaPg } = require('@prisma/adapter-pg');
 const { PrismaClient } = require('@prisma/client');
@@ -19,24 +18,21 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Configuration Cloudinary avec .trim() pour éliminer automatiquement les espaces invisibles
 cloudinary.config({
   cloud_name: (process.env.CLOUDINARY_CLOUD_NAME || '').trim(),
   api_key: (process.env.CLOUDINARY_API_KEY || '').trim(),
   api_secret: (process.env.CLOUDINARY_API_SECRET || '').trim()
 });
 
-// Configuration Multer (stockage temporaire avant upload Cloudinary)
 const upload = multer({ dest: 'uploads/' });
 
-// Fonction utilitaire pour uploader sur Cloudinary
 const uploadToCloudinary = async (filePath, folder, resourceType = 'auto') => {
   try {
     const result = await cloudinary.uploader.upload(filePath, {
       folder: folder,
       resource_type: resourceType
     });
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath); // Nettoyage sécurisé
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     return result.secure_url;
   } catch (error) {
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
@@ -53,7 +49,6 @@ app.post('/api/annonces', upload.fields([
     const body = req.body;
     let photoUrl = '';
 
-    // 1. Upload de la photo de profil vers Cloudinary
     if (req.files && req.files['photo_file'] && req.files['photo_file'][0]) {
       photoUrl = await uploadToCloudinary(
         req.files['photo_file'][0].path,
@@ -62,7 +57,6 @@ app.post('/api/annonces', upload.fields([
       );
     }
 
-    // 2. Traitement des diplômes et upload de leurs justificatifs (PDF ou Image)
     let diplomes = [];
     if (body.diplomes) {
       const parsedDiplomes = typeof body.diplomes === 'string' ? JSON.parse(body.diplomes || '[]') : (body.diplomes || []);
@@ -85,12 +79,10 @@ app.post('/api/annonces', upload.fields([
       }
     }
 
-    // 3. Traitement sécurisé des tableaux et objets
     const modes = body.modes ? (Array.isArray(body.modes) ? body.modes : [body.modes]) : [];
     const niveaux = body.niveaux ? (Array.isArray(body.niveaux) ? body.niveaux : [body.niveaux]) : [];
     const experiences = typeof body.experiences === 'string' ? JSON.parse(body.experiences || '[]') : (body.experiences || []);
 
-    // 4. Sauvegarde dans PostgreSQL via Prisma
     const nouvelleAnnonce = await prisma.annonce.create({
       data: {
         prenom: body.prenom || '',
@@ -120,7 +112,84 @@ app.post('/api/annonces', upload.fields([
   }
 });
 
-// ENDPOINT : Récupérer toutes les annonces (avec avis et disponibilités)
+// ENDPOINT : Mettre à jour une annonce existante
+app.put('/api/annonces/:id', upload.fields([
+  { name: 'photo_file', maxCount: 1 },
+  { name: 'diploma_files' }
+]), async (req, res) => {
+  try {
+    const annonceId = req.params.id;
+    const body = req.body;
+
+    const existingAnnonce = await prisma.annonce.findUnique({ where: { id: annonceId } });
+    if (!existingAnnonce) return res.status(404).json({ message: 'Annonce non trouvée' });
+
+    let photoUrl = existingAnnonce.photo_url;
+    if (req.files && req.files['photo_file'] && req.files['photo_file'][0]) {
+      photoUrl = await uploadToCloudinary(
+        req.files['photo_file'][0].path,
+        'happy_cours/photos',
+        'image'
+      );
+    }
+
+    let diplomes = [];
+    if (body.diplomes) {
+      const parsedDiplomes = typeof body.diplomes === 'string' ? JSON.parse(body.diplomes || '[]') : (body.diplomes || []);
+      const diplomaFiles = (req.files && req.files['diploma_files']) ? req.files['diploma_files'] : [];
+
+      for (let i = 0; i < parsedDiplomes.length; i++) {
+        let dip = parsedDiplomes[i];
+        let fileUrl = dip.justificatif_url || '';
+        if (diplomaFiles[i]) {
+          fileUrl = await uploadToCloudinary(
+            diplomaFiles[i].path,
+            'happy_cours/diplomes',
+            'auto'
+          );
+        }
+        diplomes.push({
+          ...dip,
+          justificatif_url: fileUrl
+        });
+      }
+    }
+
+    const modes = body.modes ? (Array.isArray(body.modes) ? body.modes : [body.modes]) : [];
+    const niveaux = body.niveaux ? (Array.isArray(body.niveaux) ? body.niveaux : [body.niveaux]) : [];
+    const experiences = typeof body.experiences === 'string' ? JSON.parse(body.experiences || '[]') : (body.experiences || []);
+
+    const updatedAnnonce = await prisma.annonce.update({
+      where: { id: annonceId },
+      data: {
+        prenom: body.prenom || existingAnnonce.prenom,
+        nom: body.nom || existingAnnonce.nom,
+        email: body.email || existingAnnonce.email,
+        telephone: body.phone || existingAnnonce.telephone,
+        ville: body.ville || existingAnnonce.ville,
+        etablissement: body.etablissement || existingAnnonce.etablissement,
+        photo_url: photoUrl,
+        matieres: body.matieres || existingAnnonce.matieres,
+        titre_accroche: body.titre_accroche || existingAnnonce.titre_accroche,
+        modes: modes,
+        niveaux: niveaux,
+        methodologie: body.methodologie || existingAnnonce.methodologie,
+        tarif_primaire: parseFloat(body.tarif_primaire) || existingAnnonce.tarif_primaire,
+        tarif_college: parseFloat(body.tarif_college) || existingAnnonce.tarif_college,
+        tarif_lycee: parseFloat(body.tarif_lycee) || existingAnnonce.tarif_lycee,
+        diplomes: diplomes,
+        experiences: experiences
+      }
+    });
+
+    res.json({ success: true, annonce: updatedAnnonce });
+  } catch (err) {
+    console.error('Erreur Update:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ENDPOINT : Récupérer toutes les annonces
 app.get('/api/annonces', async (req, res) => {
   try {
     const annonces = await prisma.annonce.findMany({
@@ -158,10 +227,6 @@ app.get('/api/annonces/:id', async (req, res) => {
   }
 });
 
-// ==========================================
-// NOUVELLES FONCTIONNALITÉS : AVIS & CALENDRIER
-// ==========================================
-
 // Ajouter un avis sur une annonce
 app.post('/api/annonces/:id/avis', async (req, res) => {
   try {
@@ -181,19 +246,32 @@ app.post('/api/annonces/:id/avis', async (req, res) => {
   }
 });
 
-// Ajouter/Mettre à jour des disponibilités sur une annonce
+// Enregistrer/Remplacer plusieurs disponibilités pour un prof
 app.post('/api/annonces/:id/disponibilites', async (req, res) => {
   try {
-    const { jour, heure, statut } = req.body;
-    const nouvelleDispo = await prisma.disponibilite.create({
-      data: {
-        jour,
-        heure,
-        statut: statut || 'disponible',
-        annonceId: req.params.id
-      }
-    });
-    res.status(201).json({ success: true, disponibilite: nouvelleDispo });
+    const { slots } = req.body;
+    const annonceId = req.params.id;
+
+    if (Array.isArray(slots)) {
+      // Purge des anciennes disponibilités pour éviter les réplications
+      await prisma.disponibilite.deleteMany({
+        where: { annonceId: annonceId }
+      });
+
+      const records = slots.map(s => ({
+        jour: s.jour || null,
+        date: s.date ? new Date(s.date) : null,
+        heure: s.heure,
+        statut: s.statut || 'disponible',
+        annonceId: annonceId
+      }));
+
+      await prisma.disponibilite.createMany({
+        data: records
+      });
+    }
+
+    res.status(201).json({ success: true, message: 'Disponibilités enregistrées' });
   } catch (err) {
     console.error('Erreur Disponibilité:', err);
     res.status(500).json({ success: false, message: err.message });

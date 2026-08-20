@@ -44,11 +44,12 @@ model Avis {
 }
 
 model Disponibilite {
-  id        String   @id @default(uuid())
-  jour      String
+  id        String    @id @default(uuid())
+  jour      String?   // Ajout pour supporter le format récurrent ex: "Lundi"
+  date      DateTime? // Passé en optionnel
   heure     String
-  statut    String   @default("disponible")
+  statut    String    @default("disponible")
 
   annonceId String
-  annonce   Annonce  @relation(fields: [annonceId], references: [id], onDelete: Cascade)
+  annonce   Annonce   @relation(fields: [annonceId], references: [id], onDelete: Cascade)
 }
