@@ -5,9 +5,15 @@ const cors = require('cors');
 const fs = require('fs');
 require('dotenv').config();
 
-// Initialisation de Prisma Client
+// Configuration Prisma 7 avec l'adaptateur PostgreSQL
+const { Pool } = require('pg');
+const { PrismaPg } = require('@prisma/adapter-pg');
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+
+const connectionString = process.env.DATABASE_URL;
+const pool = new Pool({ connectionString });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 const app = express();
 app.use(cors());
