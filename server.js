@@ -201,7 +201,8 @@ app.get('/api/annonces', async (req, res) => {
     const annonces = await prisma.annonce.findMany({
       include: {
         avis: true,
-        disponibilites: true
+        disponibilites: true,
+        reservations: true
       },
       orderBy: {
         createdAt: 'desc'
@@ -221,7 +222,8 @@ app.get('/api/annonces/:id', async (req, res) => {
       where: { id: req.params.id },
       include: {
         avis: true,
-        disponibilites: true
+        disponibilites: true,
+        reservations: true
       }
     });
 
@@ -279,6 +281,34 @@ app.post('/api/annonces/:id/disponibilites', async (req, res) => {
     res.status(201).json({ success: true, message: 'Disponibilités enregistrées' });
   } catch (err) {
     console.error('Erreur Disponibilité:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ENDPOINT : Réserver un créneau de cours
+app.post('/api/annonces/:id/reservations', async (req, res) => {
+  try {
+    const { nomEleve, emailEleve, phoneEleve, dateCours, heureCours } = req.body;
+    const annonceId = req.params.id;
+
+    if (!nomEleve || !emailEleve || !dateCours || !heureCours) {
+      return res.status(400).json({ success: false, message: 'Veuillez remplir tous les champs requis.' });
+    }
+
+    const reservation = await prisma.reservation.create({
+      data: {
+        nomEleve,
+        emailEleve,
+        phoneEleve: phoneEleve || '',
+        dateCours,
+        heureCours,
+        annonceId
+      }
+    });
+
+    res.status(201).json({ success: true, reservation });
+  } catch (err) {
+    console.error('Erreur Réservation:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 });

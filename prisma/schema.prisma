@@ -38,6 +38,7 @@ model Annonce {
 
   avis                    Avis[]
   disponibilites          Disponibilite[]
+  reservations            Reservation[]
 }
 
 model Avis {
@@ -60,4 +61,18 @@ model Disponibilite {
 
   annonceId String
   annonce   Annonce   @relation(fields: [annonceId], references: [id], onDelete: Cascade)
+}
+
+model Reservation {
+  id          String   @id @default(uuid())
+  nomEleve    String
+  emailEleve  String
+  phoneEleve  String?
+  dateCours   String
+  heureCours  String
+  statut      String   @default("en_attente")
+  createdAt   DateTime @default(now())
+
+  annonceId   String
+  annonce     Annonce  @relation(fields: [annonceId], references: [id], onDelete: Cascade)
 }
