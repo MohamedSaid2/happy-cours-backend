@@ -71,6 +71,7 @@ model Reservation {
   dateCours   String
   heureCours  String
   statut      String   @default("en_attente")
+  lienVisio   String?
   createdAt   DateTime @default(now())
 
   annonceId   String

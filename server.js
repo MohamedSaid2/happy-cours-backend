@@ -8,6 +8,7 @@ require('dotenv').config();
 const { Pool } = require('pg');
 const { PrismaPg } = require('@prisma/adapter-pg');
 const { PrismaClient } = require('@prisma/client');
+const { creerEvenementMeet } = require('./Googlemeet');
 
 const connectionString = process.env.DATABASE_URL;
 const pool = new Pool({ connectionString });
@@ -295,6 +296,9 @@ app.post('/api/annonces/:id/reservations', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Veuillez remplir tous les champs requis.' });
     }
 
+    const annonce = await prisma.annonce.findUnique({ where: { id: annonceId } });
+    if (!annonce) return res.status(404).json({ success: false, message: 'Professeur non trouvé' });
+
     const reservation = await prisma.reservation.create({
       data: {
         nomEleve,
@@ -306,7 +310,39 @@ app.post('/api/annonces/:id/reservations', async (req, res) => {
       }
     });
 
-    res.status(201).json({ success: true, reservation });
+    // On ne peut créer un événement Google Meet que si un créneau précis
+    // (date + heure) a réellement été choisi dans le calendrier — pas pour
+    // les demandes génériques ("A convenir" / "Premier créneau disponible").
+    const dateValide = /^\d{4}-\d{2}-\d{2}$/.test(dateCours);
+    const heureValide = /^\d{2}:\d{2}$/.test(heureCours);
+
+    let lienVisio = null;
+
+    if (dateValide && heureValide && annonce.email) {
+      try {
+        const resultatMeet = await creerEvenementMeet({
+          titre: `Cours d'essai Happy Cours - ${annonce.prenom} & ${nomEleve}`,
+          description: `Cours d'essai entre ${annonce.prenom} ${annonce.nom || ''} et ${nomEleve}, organisé via Happy Cours.`,
+          dateISO: dateCours,
+          heure: heureCours,
+          emailProf: annonce.email,
+          emailEleve: emailEleve
+        });
+
+        lienVisio = resultatMeet.lienVisio;
+
+        await prisma.reservation.update({
+          where: { id: reservation.id },
+          data: { lienVisio }
+        });
+      } catch (meetErr) {
+        // La réservation reste valide même si la création du lien Meet échoue ;
+        // le prof et l'élève devront alors convenir d'un lien manuellement.
+        console.error('Erreur création lien Google Meet:', meetErr);
+      }
+    }
+
+    res.status(201).json({ success: true, reservation: { ...reservation, lienVisio } });
   } catch (err) {
     console.error('Erreur Réservation:', err);
     res.status(500).json({ success: false, message: err.message });
