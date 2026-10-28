@@ -9,6 +9,7 @@ const { Pool } = require('pg');
 const { PrismaPg } = require('@prisma/adapter-pg');
 const { PrismaClient } = require('@prisma/client');
 const { creerEvenementMeet } = require('./Googlemeet');
+const { creerEvenementMeet } = require('./calWebhook');
 
 const connectionString = process.env.DATABASE_URL;
 const pool = new Pool({ connectionString });
@@ -349,5 +350,7 @@ app.post('/api/annonces/:id/reservations', async (req, res) => {
   }
 });
 
+// ENDPOINT : WEBHOOK CAL.COM (NOTIFICATIONS WHATSAPP)
+app.post('/api/cal-webhook', handleCalWebhook);
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Serveur actif sur le port ${PORT}`));
