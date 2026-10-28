@@ -9,7 +9,7 @@ const { Pool } = require('pg');
 const { PrismaPg } = require('@prisma/adapter-pg');
 const { PrismaClient } = require('@prisma/client');
 const { creerEvenementMeet } = require('./Googlemeet');
-const { creerEvenementMeet } = require('./calWebhook');
+const { handleCalWebhook } = require('./calWebhook');
 
 const connectionString = process.env.DATABASE_URL;
 const pool = new Pool({ connectionString });
