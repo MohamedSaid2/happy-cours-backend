@@ -28,17 +28,16 @@ const handleCalWebhook = async (req, res) => {
         `📅 *Date :* ${dateHeure}\n` +
         `📚 *Cours :* ${titreCours}`;
 
-      // Récupération sécurisée des variables d'environnement (avec valeurs de secours basées sur votre instance)
+      // Identifiants Green-API
       const idInstance = process.env.GREEN_INSTANCE_ID || '710722783902';
       const apiToken = process.env.GREEN_API_TOKEN || 'bba639acf2c3493a1be4705b4c3969aad00abf10b6f4918a2';
       const myPhone = process.env.MY_WHATSAPP_NUMBER || '33759047764';
 
-      // Construction propre de l'URL Green-API
-      const rawUrl = process.env.GREEN_API_URL || 'https://7107.api.greenapi.com';
-      const cleanBaseUrl = rawUrl.trim().replace(/[\[\]()]/g, '').replace(/\/+$/, '');
+      // URL de base forcée et nettoyée pour éviter tout "https" en trop
+      const cleanBaseUrl = 'https://7107.api.greenapi.com';
       const urlWa = `${cleanBaseUrl}/waInstance${idInstance}/sendMessage/${apiToken}`;
 
-      console.log(`📤 Envoi vers Green-API pour ${myPhone}...`);
+      console.log(`📤 Envoi vers Green-API à destination de ${myPhone}...`);
 
       const waResponse = await fetch(urlWa, {
         method: 'POST',
