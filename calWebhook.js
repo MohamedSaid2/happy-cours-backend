@@ -1,5 +1,5 @@
 // calWebhook.js
-// Module de gestion du Webhook Cal.com / Cal.eu et envoi des notifications WhatsApp
+// Module de gestion du Webhook Cal.com / Cal.eu -> Notification WhatsApp gratuite et durable
 
 const handleCalWebhook = async (req, res) => {
   try {
@@ -15,7 +15,6 @@ const handleCalWebhook = async (req, res) => {
       const emailEleve = eleve.email || 'Non renseigné';
       const titreCours = payload.title || 'Cours particulier';
 
-      // Formatage de la date en heure française
       const dateHeure = payload.startTime 
         ? new Date(payload.startTime).toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })
         : 'Non précisée';
@@ -31,42 +30,33 @@ const handleCalWebhook = async (req, res) => {
         `📅 *Date :* ${dateHeure}\n` +
         `📚 *Cours :* ${titreCours}`;
 
-      // Récupération des identifiants API (ex: Twilio / Green-API) depuis les variables d'environnement
-      const accountSid = process.env.TWILIO_ACCOUNT_SID;
-      const authToken = process.env.TWILIO_AUTH_TOKEN;
-      const fromNumber = process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+14155238886';
-      const toNumber = process.env.MY_WHATSAPP_NUMBER || 'whatsapp:+33759047764';
+      // Récupération des clés Green-API (Gratuit & Durable)
+      const idInstance = process.env.GREEN_INSTANCE_ID;
+      const apiToken = process.env.GREEN_API_TOKEN;
+      const myPhone = process.env.MY_WHATSAPP_NUMBER || '33759047764';
 
-      if (accountSid && authToken) {
-        // Envoi via l'API officielle Twilio WhatsApp
-        const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
-        const params = new URLSearchParams({
-          From: fromNumber,
-          To: toNumber,
-          Body: message
-        });
-
-        const twilioRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+      if (idInstance && apiToken) {
+        const urlWa = `https://api.green-api.com/waInstance${idInstance}/sendMessage/${apiToken}`;
+        
+        const waResponse = await fetch(urlWa, {
           method: 'POST',
-          headers: {
-            'Authorization': `Basic ${auth}`,
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: params.toString()
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chatId: `${myPhone}@c.us`,
+            message: message
+          })
         });
 
-        if (twilioRes.ok) {
-          console.log('✅ Notification WhatsApp envoyée avec succès sur votre téléphone !');
+        if (waResponse.ok) {
+          console.log('✅ Message WhatsApp envoyé avec succès sur votre téléphone !');
         } else {
-          const errText = await twilioRes.text();
-          console.error('⚠️ Erreur envoi Twilio WhatsApp:', errText);
+          console.error('⚠️ Erreur envoi WhatsApp:', await waResponse.text());
         }
       } else {
-        console.log('ℹ️ Notification reçue, mais identifiants WhatsApp non configurés sur Render.');
+        console.log('ℹ️ Identifiants WhatsApp non définis sur Render.');
       }
     }
 
-    // Réponse rapide 200 OK requise par Cal.com
     return res.status(200).json({ success: true, message: 'Webhook traité avec succès' });
   } catch (error) {
     console.error('Erreur traitement Webhook Cal.com:', error);
