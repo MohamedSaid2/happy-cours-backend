@@ -25,10 +25,10 @@ const handleCalWebhook = async (req, res) => {
       `📚 *Cours :* ${titreCours}`;
 
     // Nouvelle configuration de l'instance Green-API
-    const apiUrl = 'https://7107.api.greenapi.com';[cite: 9]
-    const idInstance = '710722785264';[cite: 9]
-    const apiToken = '81acb168ccd2423f8473188f4ca621cca746829c2c4b48c595';[cite: 9]
-    const myPhone = '33759047764';[cite: 9]
+    const apiUrl = 'https://7107.api.greenapi.com';
+    const idInstance = '710722785264';
+    const apiToken = '81acb168ccd2423f8473188f4ca621cca746829c2c4b48c595';
+    const myPhone = '33759047764';
 
     const urlWa = `${apiUrl}/waInstance${idInstance}/sendMessage/${apiToken}`;
 
