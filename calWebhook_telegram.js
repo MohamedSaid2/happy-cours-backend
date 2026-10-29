@@ -36,7 +36,7 @@ const handleCalWebhookTelegram = async (req, res) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        chatId: 'default',
+        chatId: '33698422460', // Votre numéro Telegram associé à l'instance
         message: message
       })
     });
