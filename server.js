@@ -1,3 +1,4 @@
+// server.js
 const express = require('express');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
@@ -10,6 +11,7 @@ const { PrismaPg } = require('@prisma/adapter-pg');
 const { PrismaClient } = require('@prisma/client');
 const { creerEvenementMeet } = require('./Googlemeet');
 const { handleCalWebhook } = require('./calWebhook');
+const { handleCalWebhookTelegram } = require('./calWebhook_telegram');
 
 const connectionString = process.env.DATABASE_URL;
 const pool = new Pool({ connectionString });
@@ -311,9 +313,6 @@ app.post('/api/annonces/:id/reservations', async (req, res) => {
       }
     });
 
-    // On ne peut créer un événement Google Meet que si un créneau précis
-    // (date + heure) a réellement été choisi dans le calendrier — pas pour
-    // les demandes génériques ("A convenir" / "Premier créneau disponible").
     const dateValide = /^\d{4}-\d{2}-\d{2}$/.test(dateCours);
     const heureValide = /^\d{2}:\d{2}$/.test(heureCours);
 
@@ -337,8 +336,6 @@ app.post('/api/annonces/:id/reservations', async (req, res) => {
           data: { lienVisio }
         });
       } catch (meetErr) {
-        // La réservation reste valide même si la création du lien Meet échoue ;
-        // le prof et l'élève devront alors convenir d'un lien manuellement.
         console.error('Erreur création lien Google Meet:', meetErr);
       }
     }
@@ -350,7 +347,22 @@ app.post('/api/annonces/:id/reservations', async (req, res) => {
   }
 });
 
-// ENDPOINT : WEBHOOK CAL.COM (NOTIFICATIONS WHATSAPP)
-app.post('/api/cal-webhook', handleCalWebhook);
+// ENDPOINT : WEBHOOK CAL.COM (Déclenche à la fois WhatsApp ET Telegram en même temps)
+app.post('/api/cal-webhook', async (req, res) => {
+  console.log('📥 WEBHOOK CAL.COM REÇU -> Diffusion WhatsApp & Telegram');
+  try {
+    // Exécute les deux envois en parallèle sans bloquer l'un ou l'autre
+    await Promise.all([
+      handleCalWebhook(req, { status: () => ({ json: () => {} }) }),
+      handleCalWebhookTelegram(req, { status: () => ({ json: () => {} }) })
+    ]);
+
+    return res.status(200).json({ success: true, message: 'Notifications WhatsApp et Telegram envoyées avec succès' });
+  } catch (error) {
+    console.error('❌ Erreur lors de la diffusion des webhooks:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Serveur actif sur le port ${PORT}`));
