@@ -24,9 +24,9 @@ const handleCalWebhookTelegram = async (req, res) => {
       `📅 *Date :* ${dateHeure}\n` +
       `📚 *Cours :* ${titreCours}`;
 
-    const apiUrl = 'https://api.green-api.com';[cite: 5]
-    const idInstance = '410022785285';[cite: 5]
-    const apiToken = '88937e6a929d427f8785d8eec5840294c4d75247c82f4405b6';[cite: 5]
+    const apiUrl = 'https://api.green-api.com';
+    const idInstance = '410022785285';
+    const apiToken = '88937e6a929d427f8785d8eec5840294c4d75247c82f4405b6';
 
     const urlWa = `${apiUrl}/waInstance${idInstance}/sendMessage/${apiToken}`;
 
@@ -36,7 +36,7 @@ const handleCalWebhookTelegram = async (req, res) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        chatId: 'default', // L'API l'envoie directement sur le canal actif de l'instance
+        chatId: 'default',
         message: message
       })
     });
