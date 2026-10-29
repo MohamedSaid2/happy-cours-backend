@@ -1,11 +1,10 @@
 // calWebhook.js
-// Module de gestion du Webhook Cal.com / Cal.eu -> Notification WhatsApp gratuite et durable
+// Module de gestion du Webhook Cal.com / Cal.eu -> Notification WhatsApp via Green-API
 
 const handleCalWebhook = async (req, res) => {
   try {
     const event = req.body;
 
-    // Déclencheur : Nouvelle réservation créée sur Cal.com
     if (event.triggerEvent === 'BOOKING_CREATED') {
       const payload = event.payload || {};
       const attendees = payload.attendees || [];
@@ -23,20 +22,21 @@ const handleCalWebhook = async (req, res) => {
       console.log(`👤 Élève : ${nomEleve} (${emailEleve})`);
       console.log(`📅 Date : ${dateHeure}`);
 
-      // Construction du message WhatsApp
       const message = `🚨 *NOUVELLE RÉSERVATION COURS LIVE !*\n\n` +
         `👤 *Élève :* ${nomEleve}\n` +
         `📧 *Email :* ${emailEleve}\n` +
         `📅 *Date :* ${dateHeure}\n` +
         `📚 *Cours :* ${titreCours}`;
 
-      // Récupération des clés Green-API (Gratuit & Durable)
+      // Récupération des clés Green-API
       const idInstance = process.env.GREEN_INSTANCE_ID;
       const apiToken = process.env.GREEN_API_TOKEN;
       const myPhone = process.env.MY_WHATSAPP_NUMBER || '33759047764';
 
       if (idInstance && apiToken) {
-        const urlWa = `https://api.green-api.com/waInstance${idInstance}/sendMessage/${apiToken}`;
+        // Utilisation de l'URL spécifique à votre instance (ex: https://7107.api.greenapi.com)
+        const apiUrl = process.env.GREEN_API_URL || 'https://7107.api.greenapi.com';
+        const urlWa = `${apiUrl}/waInstance${idInstance}/sendMessage/${apiToken}`;
         
         const waResponse = await fetch(urlWa, {
           method: 'POST',
@@ -50,7 +50,8 @@ const handleCalWebhook = async (req, res) => {
         if (waResponse.ok) {
           console.log('✅ Message WhatsApp envoyé avec succès sur votre téléphone !');
         } else {
-          console.error('⚠️ Erreur envoi WhatsApp:', await waResponse.text());
+          const errBody = await waResponse.text();
+          console.error('⚠️ Erreur envoi WhatsApp:', errBody);
         }
       } else {
         console.log('ℹ️ Identifiants WhatsApp non définis sur Render.');
