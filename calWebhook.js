@@ -28,33 +28,34 @@ const handleCalWebhook = async (req, res) => {
         `📅 *Date :* ${dateHeure}\n` +
         `📚 *Cours :* ${titreCours}`;
 
-      // Récupération des clés Green-API
-      const idInstance = process.env.GREEN_INSTANCE_ID;
-      const apiToken = process.env.GREEN_API_TOKEN;
+      // Clés Green-API
+      const idInstance = process.env.GREEN_INSTANCE_ID || '710722783902';
+      const apiToken = process.env.GREEN_API_TOKEN || 'bba639acf2c3493a1be4705b4c3969aad00abf10b6f4918a2';
       const myPhone = process.env.MY_WHATSAPP_NUMBER || '33759047764';
 
-      if (idInstance && apiToken) {
-        // Utilisation de l'URL spécifique à votre instance (ex: https://7107.api.greenapi.com)
-        const apiUrl = process.env.GREEN_API_URL || 'https://7107.api.greenapi.com';
-        const urlWa = `${apiUrl}/waInstance${idInstance}/sendMessage/${apiToken}`;
-        
-        const waResponse = await fetch(urlWa, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chatId: `${myPhone}@c.us`,
-            message: message
-          })
-        });
+      // Nettoyage strict de l'URL Green-API
+      const rawUrl = process.env.GREEN_API_URL || 'https://7107.api.greenapi.com';
+      const apiUrl = rawUrl.trim().replace(/[\[\]()]/g, '');
+      const urlWa = `${apiUrl}/waInstance${idInstance}/sendMessage/${apiToken}`;
 
-        if (waResponse.ok) {
-          console.log('✅ Message WhatsApp envoyé avec succès sur votre téléphone !');
-        } else {
-          const errBody = await waResponse.text();
-          console.error('⚠️ Erreur envoi WhatsApp:', errBody);
-        }
+      console.log(`📤 Envoi vers Green-API à destination de ${myPhone}...`);
+
+      const waResponse = await fetch(urlWa, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chatId: `${myPhone}@c.us`,
+          message: message
+        })
+      });
+
+      const responseData = await waResponse.text();
+
+      if (waResponse.ok) {
+        console.log('✅ Message WhatsApp envoyé avec succès sur votre téléphone !');
+        console.log('Réponse Green-API:', responseData);
       } else {
-        console.log('ℹ️ Identifiants WhatsApp non définis sur Render.');
+        console.error(`⚠️ Erreur Green-API (Code HTTP ${waResponse.status}):`, responseData);
       }
     }
 
