@@ -24,13 +24,9 @@ const handleCalWebhookTelegram = async (req, res) => {
       `📅 *Date :* ${dateHeure}\n` +
       `📚 *Cours :* ${titreCours}`;
 
-    // Paramètres exacts de votre instance Green-API Telegram
-    const apiUrl = 'https://api.green-api.com';
-    const idInstance = '410022785285';
-    const apiToken = '88937e6a929d427f8785d8eec5840294c4d75247c82f4405b6';
-    
-    // Le Chat ID de votre discussion Telegram (ex: '123456789@chat.id' ou l'identifiant du chat visible dans votre panneau)
-    const chatId = 'VOTRE_CHAT_ID@chat.id';
+    const apiUrl = 'https://api.green-api.com';[cite: 5]
+    const idInstance = '410022785285';[cite: 5]
+    const apiToken = '88937e6a929d427f8785d8eec5840294c4d75247c82f4405b6';[cite: 5]
 
     const urlWa = `${apiUrl}/waInstance${idInstance}/sendMessage/${apiToken}`;
 
@@ -40,7 +36,7 @@ const handleCalWebhookTelegram = async (req, res) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        chatId: chatId,
+        chatId: 'default', // L'API l'envoie directement sur le canal actif de l'instance
         message: message
       })
     });
