@@ -1,16 +1,9 @@
 // calWebhook.js
 const handleCalWebhook = async (req, res) => {
-  console.log('📥 REQUÊTE WEBHOOK REÇUE DE CAL.COM ! Headers:', req.headers);
-  console.log('📦 Body brut reçu:', JSON.stringify(req.body));
+  console.log('📥 REQUÊTE WEBHOOK REÇUE DE CAL.COM !');
 
   try {
     const event = req.body || {};
-
-    // Si le triggerEvent n'est pas présent, on logue pour comprendre ce que Cal.com envoie
-    if (!event.triggerEvent) {
-      console.log('⚠️ Attention : event.triggerEvent est absent du payload.');
-    }
-
     const payload = event.payload || {};
     const attendees = payload.attendees || [];
     const eleve = attendees[0] || {};
@@ -23,21 +16,21 @@ const handleCalWebhook = async (req, res) => {
       ? new Date(payload.startTime).toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })
       : 'Non précisée';
 
-    console.log(`🔔 Traitement réservation -> Élève : ${nomEleve} | Date : ${dateHeure}`);
-
     const message = `🚨 *NOUVELLE RÉSERVATION COURS LIVE !*\n\n` +
-      `👤 *Élève :* ${nomEleve}\n` +
+      `👤 *Élève :* ${nomElev || nomEleve}\n` +
       `📧 *Email :* ${emailEleve}\n` +
       `📅 *Date :* ${dateHeure}\n` +
       `📚 *Cours :* ${titreCours}`;
 
-    // Identifiants Green-API en dur
+    // Vos identifiants exacts issus de votre capture d'écran
     const idInstance = '710722783902';
     const apiToken = 'bba639acf2c3493a1be4705b4c3969aad00abf10b6f4918a2';
     const myPhone = '33759047764';
-    const urlWa = `https://7107.api.greenapi.com/waInstance${idInstance}/sendMessage/${apiToken}`;
 
-    console.log(`📤 Envoi direct vers Green-API pour ${myPhone}...`);
+    // Utilisation de l'API standard Green-API (api.green-api.com) qui redirige automatiquement vers le bon cluster
+    const urlWa = `https://api.green-api.com/waInstance${idInstance}/sendMessage/${apiToken}`;
+
+    console.log(`📤 Envoi vers Green-API universel...`);
 
     const waResponse = await fetch(urlWa, {
       method: 'POST',
@@ -53,7 +46,7 @@ const handleCalWebhook = async (req, res) => {
 
     return res.status(200).json({ success: true, message: 'Webhook traité avec succès' });
   } catch (error) {
-    console.error('❌ Erreur critique dans handleCalWebhook:', error);
+    console.error('❌ Erreur critique:', error);
     return res.status(500).json({ success: false, error: error.message });
   }
 };
