@@ -16,21 +16,21 @@ const handleCalWebhook = async (req, res) => {
       ? new Date(payload.startTime).toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })
       : 'Non précisée';
 
+    // Correction de la variable nomEleve ici
     const message = `🚨 *NOUVELLE RÉSERVATION COURS LIVE !*\n\n` +
-      `👤 *Élève :* ${nomElev || nomEleve}\n` +
+      `👤 *Élève :* ${nomEleve}\n` +
       `📧 *Email :* ${emailEleve}\n` +
       `📅 *Date :* ${dateHeure}\n` +
       `📚 *Cours :* ${titreCours}`;
 
-    // Vos identifiants exacts issus de votre capture d'écran
     const idInstance = '710722783902';
     const apiToken = 'bba639acf2c3493a1be4705b4c3969aad00abf10b6f4918a2';
     const myPhone = '33759047764';
 
-    // Utilisation de l'API standard Green-API (api.green-api.com) qui redirige automatiquement vers le bon cluster
+    // Utilisation de l'API standard Green-API
     const urlWa = `https://api.green-api.com/waInstance${idInstance}/sendMessage/${apiToken}`;
 
-    console.log(`📤 Envoi vers Green-API universel...`);
+    console.log(`📤 Envoi vers Green-API universel pour ${myPhone}...`);
 
     const waResponse = await fetch(urlWa, {
       method: 'POST',
