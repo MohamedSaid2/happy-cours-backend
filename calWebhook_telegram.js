@@ -1,6 +1,6 @@
 // calWebhook_telegram.js
 const handleCalWebhookTelegram = async (req, res) => {
-  console.log('📥 REQUÊTE WEBHOOK REÇUE DE CAL.COM (TELEGRAM) !');
+  console.log('📥 REQUÊTE WEBHOOK REÇUE DE CAL.COM (TELEGRAM BOT) !');
 
   try {
     const event = req.body || {};
@@ -18,33 +18,35 @@ const handleCalWebhookTelegram = async (req, res) => {
 
     console.log(`🔔 Traitement réservation Telegram -> Élève : ${nomEleve} | Date : ${dateHeure}`);
 
+    // Message formaté pour Telegram
     const message = `🚨 *NOUVELLE RÉSERVATION COURS LIVE !*\n\n` +
       `👤 *Élève :* ${nomEleve}\n` +
       `📧 *Email :* ${emailEleve}\n` +
       `📅 *Date :* ${dateHeure}\n` +
       `📚 *Cours :* ${titreCours}`;
 
-    const apiUrl = 'https://api.green-api.com';
-    const idInstance = '410022785285';
-    const apiToken = '88937e6a929d427f8785d8eec5840294c4d75247c82f4405b6';
+    // Vos identifiants Bot Telegram
+    const botToken = '9203227989:AAGQ71kVKygrq8ok8blJVMPC4q7UZxku-a0';
+    const chatId = '6955670219';
 
-    const urlWa = `${apiUrl}/waInstance${idInstance}/sendMessage/${apiToken}`;
+    const urlTelegram = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
-    console.log(`📤 Envoi vers Telegram via Green-API (${apiUrl})...`);
+    console.log(`📤 Envoi vers le Bot Telegram (${urlTelegram})...`);
 
-    const waResponse = await fetch(urlWa, {
+    const telegramResponse = await fetch(urlTelegram, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        chatId: '33698422460', // Votre numéro Telegram associé à l'instance
-        message: message
+        chat_id: chatId,
+        text: message,
+        parse_mode: 'Markdown'
       })
     });
 
-    const responseData = await waResponse.text();
-    console.log(`📨 Réponse Green-API Telegram (Statut ${waResponse.status}):`, responseData);
+    const responseData = await telegramResponse.json();
+    console.log(`📨 Réponse Bot Telegram (Statut ${telegramResponse.status}):`, JSON.stringify(responseData));
 
-    return res.status(200).json({ success: true, message: 'Webhook Telegram traité avec succès' });
+    return res.status(200).json({ success: true, message: 'Webhook Telegram envoyé avec succès' });
   } catch (error) {
     console.error('❌ Erreur critique dans handleCalWebhookTelegram:', error);
     return res.status(500).json({ success: false, error: error.message });
