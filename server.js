@@ -366,35 +366,4 @@ app.post('/api/cal-webhook', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
-// ENDPOINT : Récupérer les avis Google Maps de manière sécurisée
-app.get('/api/google-reviews', async (req, res) => {
-  try {
-    const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
-    const PLACE_ID = process.env.GOOGLE_PLACE_ID;
-
-    if (!GOOGLE_API_KEY || !PLACE_ID) {
-      return res.status(500).json({ success: false, message: 'Clés Google non configurées sur le serveur.' });
-    }
-
-    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${PLACE_ID}&fields=name,rating,reviews,user_ratings_total&key=${GOOGLE_API_KEY}&language=fr`;
-    
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (data.status !== 'OK') {
-      return res.status(500).json({ success: false, error: data.status });
-    }
-
-    return res.status(200).json({
-      success: true,
-      rating: data.result.rating,
-      total_reviews: data.result.user_ratings_total,
-      reviews: data.result.reviews || []
-    });
-  } catch (error) {
-    console.error('Erreur récupération avis Google:', error);
-    return res.status(500).json({ success: false, error: error.message });
-  }
-});
-
 app.listen(PORT, () => console.log(`Serveur actif sur le port ${PORT}`));
